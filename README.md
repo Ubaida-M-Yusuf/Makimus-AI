@@ -19,8 +19,10 @@ Search your entire image library using **natural language or an image** — just
 ## 🚀 Installation
 
 ### 1. Clone the repo
+```bash
 git clone git@github.com:Ubaida-M-Yusuf/Makimus-AI.git
 cd Makimus-AI
+```
 
 ### 2. Create a virtual environment
 python -m venv venv
