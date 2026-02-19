@@ -39,7 +39,7 @@ pip install -r requirements.txt
 ---
 
 ## ▶️ Run
-python search_onix_v2_linux3.py
+python Makimus-AI.py
 
 ---
 
