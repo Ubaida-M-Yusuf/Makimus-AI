@@ -20,7 +20,7 @@ Search your entire image library using **natural language or an image** — just
 
 ### 1. Clone the repo
 ```bash
-git clone git@github.com:Ubaida-M-Yusuf/Makimus-AI.git
+git clone https://github.com/Ubaida-M-Yusuf/Makimus-AI.git
 cd Makimus-AI
 ```
 
