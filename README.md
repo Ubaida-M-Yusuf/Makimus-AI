@@ -46,6 +46,13 @@ pip install -r requirements.txt
 ---
 
 ## ▶️ Run
+
+> **Important:** Make sure to activate your virtual environment before running!
+> ```bash
+> source venv/Scripts/activate  # Windows
+> source venv/bin/activate       # Mac/Linux
+> ```
+
 python Makimus-AI.py
 
 ---
