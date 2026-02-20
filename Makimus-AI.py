@@ -108,8 +108,27 @@ CELL_HEIGHT = 260
 CACHE_PREFIX = ".clip_cache_"
 CACHE_SUFFIX = ".pkl"
 
-MODEL_NAME = "ViT-L-14"
-MODEL_PRETRAINED = "laion2b_s32b_b82k"
+MODEL_CONFIGS = {
+    "ViT-L-14 (LAION2B)": {
+        "name": "ViT-L-14",
+        "pretrained": "laion2b_s32b_b82k",
+        "image_size": 224,
+    },
+    "PE-Core-L14-336": {
+        "name": "hf-hub:timm/PE-Core-L14-336",
+        "pretrained": None,
+        "image_size": 336,
+    },
+    "PE-Core-G14-448": {
+        "name": "hf-hub:timm/PE-Core-bigG-14-448",
+        "pretrained": None,
+        "image_size": 448,
+    },
+}
+DEFAULT_MODEL_KEY = "ViT-L-14 (LAION2B)"
+# Legacy references kept for any code that reads them directly
+MODEL_NAME = MODEL_CONFIGS[DEFAULT_MODEL_KEY]["name"]
+MODEL_PRETRAINED = MODEL_CONFIGS[DEFAULT_MODEL_KEY]["pretrained"]
 
 BG = "#1e1e1e"
 PANEL_BG = "#252526"
@@ -131,14 +150,23 @@ class HybridCLIPModel:
     """
     Cross-Platform Hybrid Model Wrapper
     """
-    def __init__(self):
+    def __init__(self, model_key=None):
         import torch
         import open_clip
         import onnxruntime as ort
-        
+
+        # Resolve model config
+        if model_key is None:
+            model_key = DEFAULT_MODEL_KEY
+        self.model_key = model_key
+        config = MODEL_CONFIGS.get(model_key, MODEL_CONFIGS[DEFAULT_MODEL_KEY])
+        self.image_size = config["image_size"]
+        _model_name = config["name"]
+        _model_pretrained = config["pretrained"]
+
         # 1. Determine Device
         self.device_name = "CPU"
-        
+
         try:
             if torch.cuda.is_available():
                 self.device = torch.device("cuda")
@@ -157,46 +185,52 @@ class HybridCLIPModel:
                 self.device = torch.device("cpu")
         except Exception:
             self.device = torch.device("cpu")
-        
+
         safe_print(f"[MODEL] Using Device: {self.device_name}")
-        safe_print(f"[MODEL] Loading: {MODEL_NAME}")
-        
+        safe_print(f"[MODEL] Loading: {_model_name}")
+
         # 2. Load PyTorch Model
         model_loaded = False
-        
+
         try:
             import huggingface_hub
             huggingface_hub.constants.HF_HUB_OFFLINE = True
             os.environ["HF_HUB_OFFLINE"] = "1"
             os.environ["TRANSFORMERS_OFFLINE"] = "1"
-            
-            self.model, _, self.preprocess = open_clip.create_model_and_transforms(
-                MODEL_NAME, pretrained=MODEL_PRETRAINED
-            )
-            self.tokenizer = open_clip.get_tokenizer(MODEL_NAME)
+
+            if _model_pretrained is not None:
+                self.model, _, self.preprocess = open_clip.create_model_and_transforms(
+                    _model_name, pretrained=_model_pretrained
+                )
+            else:
+                self.model, _, self.preprocess = open_clip.create_model_and_transforms(_model_name)
+            self.tokenizer = open_clip.get_tokenizer(_model_name)
             safe_print(f"[MODEL] Loaded from local cache")
             model_loaded = True
         except Exception:
             safe_print(f"[MODEL] Cache not available, connecting to download...")
-        
+
         if not model_loaded:
             try:
                 import huggingface_hub
                 huggingface_hub.constants.HF_HUB_OFFLINE = False
                 os.environ["HF_HUB_OFFLINE"] = "0"
                 os.environ["TRANSFORMERS_OFFLINE"] = "0"
-                safe_print(f"[MODEL] Downloading {MODEL_NAME} (this may take a while)...")
-                self.model, _, self.preprocess = open_clip.create_model_and_transforms(
-                    MODEL_NAME, pretrained=MODEL_PRETRAINED
-                )
-                self.tokenizer = open_clip.get_tokenizer(MODEL_NAME)
+                safe_print(f"[MODEL] Downloading {_model_name} (this may take a while)...")
+                if _model_pretrained is not None:
+                    self.model, _, self.preprocess = open_clip.create_model_and_transforms(
+                        _model_name, pretrained=_model_pretrained
+                    )
+                else:
+                    self.model, _, self.preprocess = open_clip.create_model_and_transforms(_model_name)
+                self.tokenizer = open_clip.get_tokenizer(_model_name)
                 safe_print(f"[MODEL] Download complete!")
             except Exception as e:
                 safe_print(f"[MODEL] Download failed: {e}")
                 raise
-        
+
         self.model = self.model.to(self.device).eval()
-        
+
         # 3. Setup ONNX Visual Encoder
         self.setup_onnx_encoder()
 
@@ -222,13 +256,14 @@ class HybridCLIPModel:
         # Setup ONNX Visual Encoder
         cache_dir = Path.home() / ".cache" / "onnx_clip"
         cache_dir.mkdir(parents=True, exist_ok=True)
-        self.onnx_visual_path = cache_dir / f"{MODEL_NAME.replace('-', '_')}_visual.onnx"
-        
+        _safe_key = self.model_key.replace('hf-hub:', '').replace('timm/', '').replace('/', '_').replace('-', '_').replace(':', '_').replace(' ', '_').replace('(', '').replace(')', '')
+        self.onnx_visual_path = cache_dir / f"{_safe_key}_visual.onnx"
+
         if not self.onnx_visual_path.exists():
             safe_print(f"[ONNX] Attempting visual encoder export...")
-            
+
             try:
-                dummy_image = torch.randn(1, 3, 224, 224).to(self.device)
+                dummy_image = torch.randn(1, 3, self.image_size, self.image_size).to(self.device)
                 with torch.no_grad():
                     torch.onnx.export(
                         self.model.visual,
@@ -353,7 +388,7 @@ class HybridCLIPModel:
                 safe_print(f"[ONNX] Cleanup warning: {e}")
 
     def preprocess_image_onnx(self, image):
-        target_size = 224
+        target_size = self.image_size
         w, h = image.size
         scale = target_size / min(w, h)
         new_w, new_h = int(w * scale), int(h * scale)
@@ -444,7 +479,8 @@ class ImageSearchApp:
         self.image_embeddings = None
         self.thumbnail_images = {}
         self.selected_images = set()
-        
+
+        self.current_model_key = DEFAULT_MODEL_KEY
         self.clip_model = None
         self.model_loading = False
         
@@ -480,16 +516,25 @@ class ImageSearchApp:
             pass
 
     def get_cache_filename(self):
-        # Format: .clip_cache_ViT-L-14_LAION2B.pkl (preserves hyphens)
-        pretrained_simple = "LAION2B" if "laion2b" in MODEL_PRETRAINED.lower() else MODEL_PRETRAINED.upper()
-        cache_name = f".clip_cache_{MODEL_NAME}_{pretrained_simple}.pkl"
+        config = MODEL_CONFIGS.get(self.current_model_key, MODEL_CONFIGS[DEFAULT_MODEL_KEY])
+        _name = config["name"]
+        _pretrained = config.get("pretrained")
+        if _pretrained:
+            pretrained_simple = "LAION2B" if "laion2b" in _pretrained.lower() else _pretrained.upper()
+            cache_name = f".clip_cache_{_name}_{pretrained_simple}.pkl"
+        else:
+            # Hub models: use a safe filename derived from the hub path
+            safe_name = _name.replace("hf-hub:", "").replace("timm/", "").replace("/", "_")
+            cache_name = f".clip_cache_{safe_name}.pkl"
         return [cache_name]
 
-    def load_model(self):
+    def load_model(self, model_key=None):
+        if model_key is None:
+            model_key = self.current_model_key
         self.model_loading = True
         self.update_status("Loading model...", "orange")
         try:
-            self.clip_model = HybridCLIPModel()
+            self.clip_model = HybridCLIPModel(model_key=model_key)
             self.root.after(0, lambda: self.update_status("Ready", "green"))
             safe_print(f"[LOAD] Success!\n")
         except Exception as e:
@@ -497,6 +542,42 @@ class ImageSearchApp:
             self.root.after(0, lambda: self.update_status("Load Failed", "red"))
             self.root.after(0, lambda: messagebox.showerror("Error", f"Failed to load model\n{e}"))
         self.model_loading = False
+
+    def on_reload_model(self):
+        if self.model_loading:
+            messagebox.showwarning("Wait", "Model is already loading...")
+            return
+        if not self.is_safe_to_act(action_callback=self._do_reload_model, action_name="reload model"):
+            return
+        self._do_reload_model()
+
+    def _do_reload_model(self):
+        new_key = self.model_var.get()
+        if new_key == self.current_model_key and self.clip_model is not None:
+            messagebox.showinfo("Info", f"Model '{new_key}' is already loaded.")
+            return
+        self.current_model_key = new_key
+        config = MODEL_CONFIGS[new_key]
+        self.model_info_label.config(text=f"img {config['image_size']}px")
+        # Clear any cached embeddings — different models are incompatible
+        self.image_paths = []
+        self.image_embeddings = None
+        self.cache_file = None
+        self.clear_results()
+        self.update_stats()
+        # Unload old model to free VRAM before loading new one
+        if self.clip_model is not None:
+            try:
+                import torch, gc
+                self.clip_model.model.cpu()
+                del self.clip_model
+                self.clip_model = None
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
+            except Exception:
+                pass
+        Thread(target=lambda: self.load_model(model_key=new_key), daemon=True).start()
 
     def build_ui(self):
         style = ttk.Style()
@@ -531,13 +612,27 @@ class ImageSearchApp:
         
         self.btn_stop = ttk.Button(top, text="STOP INDEX", command=self.stop_indexing_process, width=12, style="Danger.TButton")
         self.btn_stop.pack(side="left", padx=(20, 4))
-        
+
         ttk.Button(top, text="EXIT", command=self.force_quit, width=12, style="Danger.TButton").pack(side="left", padx=6)
-        
+
         self.status_label = ttk.Label(top, text="Starting...", width=35, anchor="w")
         self.status_label.pack(side="left", padx=10)
         self.stats_label = ttk.Label(top, text="")
         self.stats_label.pack(side="left")
+
+        # Model selector row
+        model_row = ttk.Frame(self.root, padding=(8, 0, 8, 4))
+        model_row.pack(fill="x", padx=8)
+        ttk.Label(model_row, text="Model:").pack(side="left", padx=(0, 4))
+        self.model_var = tk.StringVar(value=self.current_model_key)
+        self.model_combo = ttk.Combobox(
+            model_row, textvariable=self.model_var,
+            values=list(MODEL_CONFIGS.keys()), state="readonly", width=28
+        )
+        self.model_combo.pack(side="left", padx=4)
+        ttk.Button(model_row, text="Load Model", command=self.on_reload_model, width=12, style="Accent.TButton").pack(side="left", padx=4)
+        self.model_info_label = ttk.Label(model_row, text=f"img {MODEL_CONFIGS[DEFAULT_MODEL_KEY]['image_size']}px", foreground=ACCENT_SECONDARY)
+        self.model_info_label.pack(side="left", padx=6)
 
         search_frame = ttk.Frame(self.root, padding=8)
         search_frame.pack(fill="x", padx=8, pady=4)
