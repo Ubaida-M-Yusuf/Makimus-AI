@@ -1,4 +1,7 @@
 @echo off
-call venv\Scripts\activate
-python Makimus-AI.py
+call "%~dp0venv\Scripts\activate.bat"
+py -3.10 Makimus-AI.py
+if errorlevel 1 (
+    python Makimus-AI.py
+)
 pause
