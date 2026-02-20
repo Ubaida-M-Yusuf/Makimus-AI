@@ -38,6 +38,11 @@ source venv/bin/activate
 ### 4. Install dependencies
 pip install -r requirements.txt
 
+> **Note:** requirements.txt installs PyTorch for CUDA 12.1+. 
+> If you have CUDA 11.8 or older, visit 
+> [pytorch.org](https://pytorch.org/get-started/locally) 
+> to get the correct version for your system.
+
 ---
 
 ## ▶️ Run
