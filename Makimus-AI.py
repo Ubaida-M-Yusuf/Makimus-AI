@@ -538,9 +538,10 @@ class ImageSearchApp:
             self.root.after(0, lambda: self.update_status("Ready", "green"))
             safe_print(f"[LOAD] Success!\n")
         except Exception as e:
-            safe_print(f"[ERROR] {e}")
+            err_msg = str(e)
+            safe_print(f"[ERROR] {err_msg}")
             self.root.after(0, lambda: self.update_status("Load Failed", "red"))
-            self.root.after(0, lambda: messagebox.showerror("Error", f"Failed to load model\n{e}"))
+            self.root.after(0, lambda: messagebox.showerror("Error", f"Failed to load model\n{err_msg}"))
         self.model_loading = False
 
     def on_reload_model(self):
