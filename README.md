@@ -7,7 +7,7 @@ Search your entire image and video library using **natural language or an image*
 > Type *"girl in red armor"* or *"dog playing in snow"* — or click **Image** to search by visual similarity. Supports text-to-image, image-to-image, **text-to-video**, and **image-to-video** search.
 
 ![Makimus-AI Demo](demo.gif)
- <br>
+ <br><br><br>
 ![Makimus-AI Screenshot](Demo-pic.png)
 
 ---
