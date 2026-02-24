@@ -7,7 +7,9 @@ Search your entire image and video library using **natural language or an image*
 > Type *"girl in red armor"* or *"dog playing in snow"* — or click **Image** to search by visual similarity. Supports text-to-image, image-to-image, **text-to-video**, and **image-to-video** search.
 
 ![Makimus-AI Demo](demo.gif)
- <br><br><br>
+
+<br><br><br>
+
 ![Makimus-AI Screenshot](Demo-pic.png)
 
 ---
@@ -87,19 +89,19 @@ pip install -r requirements.txt
 
 **No NVIDIA GPU / CPU only:**
 ```bash
-pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.22.0 opencv-python==4.10.0.84 send2trash==1.8.3
+pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.26.1 opencv-python==4.13.0.92 Send2Trash==2.1.0
 pip install torch==2.10.0 torchvision==0.25.0
 ```
 
 **Apple Silicon (MPS):**
 ```bash
-pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.22.0 opencv-python==4.10.0.84 send2trash==1.8.3
+pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.26.1 opencv-python==4.13.0.92 Send2Trash==2.1.0
 pip install torch==2.10.0 torchvision==0.25.0
 ```
 
 > **Older NVIDIA GPUs (GTX 900 series and earlier):** If installation fails or CUDA is not detected, try CUDA 12.6 instead:
 > ```bash
-> pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.22.0 opencv-python==4.10.0.84 send2trash==1.8.3
+> pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.26.1 opencv-python==4.13.0.92 Send2Trash==2.1.0
 > pip install torch==2.9.1+cu126 torchvision==0.24.1+cu126 --index-url https://download.pytorch.org/whl/cu126
 > ```
 
@@ -149,7 +151,7 @@ pip install -r requirements.txt
 ### Searching
 - **Text search:** Type any description in the search box and press Enter or click **Search**
   - Examples: *"sunset over ocean"*, *"person in blue jacket"*, *"fight scene"*
-  - **Negative terms:** Add a minus sign before a word to exclude it — *"cat -dog"* finds cats without dogs in the image
+  - **Negative terms:** Add a minus sign before a word to exclude it — *"cat -dog"* finds cats without dogs
 - **Image search:** Click the **Image** button next to the search box and select any image — the app finds visually similar results from your entire library
 - Use the **Similarity Score** slider to tune results:
   - Lower = more results, broader match
@@ -158,22 +160,22 @@ pip install -r requirements.txt
 ### Working with Results
 - **Single click** a thumbnail → opens the file location in Explorer / Finder
 - **Double click** a thumbnail → opens the file in your default viewer / player
-- **Right-click** a thumbnail → context menu with options: open, show in folder, copy to folder, move to folder, delete to recycle bin, select/deselect
+- **Right-click** a thumbnail → context menu: open, show in folder, copy to folder, move to folder, delete to recycle bin, select/deselect
 - **Click and drag** on empty canvas space → rubber-band select multiple results at once
 - Use the **Show Images / Show Videos** toggles to filter what's displayed
 
 ### Video Search
-- Video results show a thumbnail of the **matching frame** with a timestamp (e.g. `t=1:23`)
-- **Best Frame mode** — disabled by default. When enabled, the app finds and displays the single best-matching frame from across the entire video, rather than any sampled frame. Useful when you want one clean representative result per video. Enable it using the toggle in the interface.
+- Video results show a thumbnail of the matching frame with a timestamp (e.g. `t=1:23`)
+- **Best Frame mode** — disabled by default. When enabled, the app finds and displays the single best-matching frame from across the entire video rather than the nearest sampled frame. Useful when you want one clean representative result per video. Enable it using the toggle in the interface.
 - Double-clicking a video result opens it in your default player
 
 ### File Operations
 - Select results using right-click or rubber-band drag, then use the toolbar to **Export** (copy) or **Move** them to any folder
-- **Delete to Recycle Bin** — right-click any result to safely delete it. Files go to your system Recycle Bin and can be recovered if needed.
+- **Delete to Recycle Bin** — right-click any result to safely delete it. Files go to your system Recycle Bin and can be recovered if needed
 
 ### Managing Your Index
-- **Refresh** — scans your folder for new or deleted files and updates the index incrementally, without re-processing everything. **This is the correct way to update your index after adding new files.**
-- **Delete Cache** — wipes the entire index and forces a full re-index next time. You almost never need this button — always use **Refresh** instead.
+- **Refresh** — scans your folder for new or deleted files and updates the index incrementally without re-processing everything. **This is the correct way to update your index after adding new files.**
+- **Delete Cache** — wipes the entire index and forces a full re-index next time. You almost never need this — always use **Refresh** instead.
 
 ---
 
@@ -205,9 +207,9 @@ pip install -r requirements.txt
 | torch | 2.10.0+cu128 | GPU inference |
 | torchvision | 0.25.0+cu128 | Image transforms |
 | open_clip_torch | 3.2.0 | CLIP model |
-| rawpy | 0.22.0 | RAW photo support |
-| opencv-python | 4.10.0.84 | Video support |
-| send2trash | 1.8.3 | Delete to Recycle Bin |
+| rawpy | 0.26.1 | RAW photo support |
+| opencv-python | 4.13.0.92 | Video support |
+| Send2Trash | 2.1.0 | Delete to Recycle Bin |
 | onnxruntime-gpu | 1.23.2 | ⚙️ Optional legacy ONNX (requires code changes) |
 
 ---
