@@ -1,124 +1,238 @@
-# 🦉 Makimus-AI - AI Image Search
+# 🦉 Makimus-AI — AI Media Search
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
+Search your entire image and video library using **natural language or an image** — type what you're looking for or drop an image, and Makimus-AI instantly finds matching results using AI. Works on photos, RAW files, and **videos**.
 
-Search your entire image library using **natural language or an image** — just type what you're looking for or drop an image, and Makimus-AI finds visually similar results instantly using AI.
-
-> Example: type *"Girl wearing a red armor"* or *"dog playing in grass"* — or just **Use an image** to find visually similar ones from your folders.
+> Type *"girl in red armor"* or *"dog playing in snow"* — or click **Image** to search by visual similarity. Supports text-to-image, image-to-image, **text-to-video**, and **image-to-video** search.
 
 ![Makimus-AI Demo](demo.gif)
+![Makimus-AI Screenshot](Demo-pic.png)
+
+---
+
+## 💛 Support the Developer
+
+Makimus-AI is completely **free and open source**. If it saves you time and you'd like to support continued development, any amount is appreciated!
+
+| Method | Address |
+|--------|---------|
+| 💳 PayPal | [paypal.me/UbaidahYusuf](https://www.paypal.me/UbaidahYusuf) |
+| ₿ Bitcoin (BTC) | `bc1ql0xt7r66lnndgks6a6j286taf38a420370tasv` |
+| 💵 USDT -- TRC-20 (Tron) | `TKV3gh5DTkpavcvwh7x4Z5gCm6yJjsKNkd` |
 
 ---
 
 ## ⚙️ Requirements
-- Python 3.10+
-- NVIDIA GPU with CUDA 12.1 (recommended)
+
+- Python 3.10, 3.11, or 3.12
+- NVIDIA GPU (recommended) — CPU mode works but is much slower
 - Windows / Linux / macOS
 
 ---
 
 ## 🚀 Installation
 
-### 1. Clone the repo
+### Windows — Easy Install
+
+**1. Clone the repo:**
 ```bash
 git clone https://github.com/Ubaida-M-Yusuf/Makimus-AI.git
 cd Makimus-AI
 ```
 
-**Windows — easy option:** double click `Install.bat` to install and launch automatically, then skip the steps below.
+**2.** Double-click **`Install.bat`** — it creates a virtual environment, installs all dependencies, and launches the app automatically.
+
+Use **`Run.bat`** every time you want to start the app after that.
 
 ---
 
-### 2. Create a virtual environment
+### Manual Installation
+
+**1. Clone the repo:**
+```bash
+git clone https://github.com/Ubaida-M-Yusuf/Makimus-AI.git
+cd Makimus-AI
+```
+
+**2. Create a virtual environment:**
 ```bash
 python -m venv venv
 ```
 
-### 3. Activate the virtual environment
+**3. Activate the virtual environment:**
 
 **Windows (Git Bash):**
 ```bash
 source venv/Scripts/activate
 ```
 
-**Mac/Linux:**
+**Windows (Command Prompt):**
+```bat
+venv\Scripts\activate
+```
+
+**Mac / Linux:**
 ```bash
 source venv/bin/activate
 ```
 
-### 4. Install dependencies
+**4. Install dependencies — pick the right command for your GPU:**
+
+**NVIDIA GPU — All modern cards (RTX 20xx, 30xx, 40xx, 50xx):**
 ```bash
 pip install -r requirements.txt
 ```
 
-> **Note:** requirements.txt installs PyTorch for CUDA 12.1+.
-> If you have CUDA older than 12.1, visit
-> [pytorch.org](https://pytorch.org/get-started/locally)
-> to get the correct version for your system.
+**No NVIDIA GPU / CPU only:**
+```bash
+pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.22.0 opencv-python==4.10.0.84 send2trash==1.8.3
+pip install torch==2.10.0 torchvision==0.25.0
+```
+
+**Apple Silicon (MPS):**
+```bash
+pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.22.0 opencv-python==4.10.0.84 send2trash==1.8.3
+pip install torch==2.10.0 torchvision==0.25.0
+```
+
+> **Older NVIDIA GPUs (GTX 900 series and earlier):** If installation fails or CUDA is not detected, try CUDA 12.6 instead:
+> ```bash
+> pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.22.0 opencv-python==4.10.0.84 send2trash==1.8.3
+> pip install torch==2.9.1+cu126 torchvision==0.24.1+cu126 --index-url https://download.pytorch.org/whl/cu126
+> ```
+
+**Optional (legacy): ONNX acceleration**
+
+Only useful on older NVIDIA GPUs. **Requires code changes inside `Makimus-AI.py` to enable — not plug and play.**
+```bash
+pip install onnxruntime-gpu==1.23.2
+```
 
 ---
 
 ## ▶️ Run
-
-> **Important:** Activate your virtual environment before running!
-> ```bash
-> source venv/Scripts/activate  # Windows
-> source venv/bin/activate       # Mac/Linux
-> ```
 ```bash
+# Make sure your venv is active, then:
 python Makimus-AI.py
 ```
 
-Windows users can also double click `Run.bat`
+Windows users can double-click **`Run.bat`**.
 
 ---
 
-## 📦 Dependencies
-| Package | Version |
-|---|---|
-| Pillow | 12.0.0 |
-| numpy | 2.2.6 |
-| torch (CUDA 12.1) | 2.5.1+cu121 |
-| torchvision (CUDA 12.1) | 0.20.1+cu121 |
-| open_clip_torch | 3.2.0 |
-| onnxruntime-gpu | 1.23.2 |
+## 🔄 Updating
+```bash
+# Pull latest code
+git pull
+```
+
+Then update dependencies. **Important: uninstall PyTorch first** — pip will not correctly switch CUDA versions without this step:
+```bash
+pip uninstall torch torchvision -y
+pip install -r requirements.txt
+```
+
+> Your existing cache files are fully compatible — no re-indexing needed after an update.
 
 ---
 
-## 🧠 Model
-This app uses **OpenCLIP ViT-L-14** trained on LAION-2B dataset by OpenAI/LAION.
+## 📖 How to Use
 
-| Property | Value |
-|---|---|
-| Model | ViT-L-14 |
-| Pretrained on | laion2b_s32b_b82k |
-| Library | open_clip_torch |
+### First Launch
+1. Launch the app — on **first run it will automatically download the AI model (~1.7 GB)** from HuggingFace. This only happens once and is cached locally.
+2. Click **Folder** and select the folder containing your images and/or videos.
+3. If no index exists for that folder, a popup will ask if you want to index it — click **Yes** to start. To index videos separately, use the **Index Videos** button.
+4. Indexing runs in the background with a progress bar. You can start searching before it finishes.
+
+### Searching
+- **Text search:** Type any description in the search box and press Enter or click **Search**
+  - Examples: *"sunset over ocean"*, *"person in blue jacket"*, *"fight scene"*
+  - **Negative terms:** Add a minus sign before a word to exclude it — *"cat -dog"* finds cats without dogs in the image
+- **Image search:** Click the **Image** button next to the search box and select any image — the app finds visually similar results from your entire library
+- Use the **Similarity Score** slider to tune results:
+  - Lower = more results, broader match
+  - Higher = fewer results, closer match
+
+### Working with Results
+- **Single click** a thumbnail → opens the file location in Explorer / Finder
+- **Double click** a thumbnail → opens the file in your default viewer / player
+- **Right-click** a thumbnail → context menu with options: open, show in folder, copy to folder, move to folder, delete to recycle bin, select/deselect
+- **Click and drag** on empty canvas space → rubber-band select multiple results at once
+- Use the **Show Images / Show Videos** toggles to filter what's displayed
+
+### Video Search
+- Video results show a thumbnail of the **matching frame** with a timestamp (e.g. `t=1:23`)
+- **Best Frame mode** — disabled by default. When enabled, the app finds and displays the single best-matching frame from across the entire video, rather than any sampled frame. Useful when you want one clean representative result per video. Enable it using the toggle in the interface.
+- Double-clicking a video result opens it in your default player
+
+### File Operations
+- Select results using right-click or rubber-band drag, then use the toolbar to **Export** (copy) or **Move** them to any folder
+- **Delete to Recycle Bin** — right-click any result to safely delete it. Files go to your system Recycle Bin and can be recovered if needed.
+
+### Managing Your Index
+- **Refresh** — scans your folder for new or deleted files and updates the index incrementally, without re-processing everything. **This is the correct way to update your index after adding new files.**
+- **Delete Cache** — wipes the entire index and forces a full re-index next time. You almost never need this button — always use **Refresh** instead.
 
 ---
 
 ## 💡 Features
-- 🔍 Natural language image search
-- 🖼️ Image-to-image search — find visually similar images
-- 🔄 Search while indexing — no need to wait for indexing to finish
-- ⚡ GPU accelerated (CUDA, Apple MPS, DirectML)
-- 🧠 Auto-detects VRAM and adjusts batch size
-- 📦 ONNX optimization for faster inference
-- 🖼️ Thumbnail preview with export support
-- 💾 Smart caching — index once, search forever
+
+- 🔍 **Text-to-image search** — find images by describing them in plain English
+- 🖼️ **Image-to-image search** — find visually similar images using a query image
+- 🎬 **Text-to-video search** — search your entire video library using text descriptions
+- 🎬 **Image-to-video search** — find video frames visually similar to a query image
+- ➖ **Negative search terms** — exclude unwanted content with minus prefixes
+- 📷 **RAW photo support** — full indexing and display for ARW, CR2, NEF, DNG, ORF, RW2, RAF, PEF, SR2
+- 🎞️ **Video support** — MP4, MKV, MOV, AVI, WEBM, M4V, WMV, FLV, TS, MPG and more
+- ⚡ **GPU accelerated** — CUDA (NVIDIA), Apple MPS, DirectML (Windows AMD/Intel)
+- 🧠 **Auto-tuning** — detects VRAM and adjusts batch sizes automatically
+- 🔄 **Search while indexing** — no need to wait for indexing to finish
+- 💾 **Smart incremental cache** — only new or changed files are processed on refresh
+- 🖱️ **Rubber-band multi-select** — drag to select multiple results at once
+- 📁 **Export / Move selected** — copy or move search results to any folder
+- 🗑️ **Delete to Recycle Bin** — safely remove files via right-click, recoverable from Recycle Bin
+
+---
+
+## 📦 Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| Pillow | 12.0.0 | Image decoding |
+| numpy | 2.2.6 | Vector math |
+| torch | 2.10.0+cu128 | GPU inference |
+| torchvision | 0.25.0+cu128 | Image transforms |
+| open_clip_torch | 3.2.0 | CLIP model |
+| rawpy | 0.22.0 | RAW photo support |
+| opencv-python | 4.10.0.84 | Video support |
+| send2trash | 1.8.3 | Delete to Recycle Bin |
+| onnxruntime-gpu | 1.23.2 | ⚙️ Optional legacy ONNX (requires code changes) |
+
+---
+
+## 🧠 Model
+
+| Property | Value |
+|----------|-------|
+| Model | ViT-L-14 |
+| Pretrained on | laion2b_s32b_b82k |
+| Library | open_clip_torch |
+| Download size | ~1.7 GB (automatic on first run, cached locally) |
 
 ---
 
 ## 📝 Notes
-- First run will download the AI model (~1GB) automatically
-- After indexing your folder, results are cached for instant future searches
-- A cache file will be created in your image folder after indexing — 
-  keep it there for instant future searches, deleting it will require re-indexing
-- CPU mode works but is significantly slower
+
+- The model downloads automatically on first launch (~1.7 GB) — this only happens once
+- Cache files are stored inside your media folder — keep them for instant future searches
+- After adding new files, use **Refresh** to update the index — do not use Delete Cache
+- CPU-only mode works but indexing will be significantly slower
 
 ---
 
 ## 🤝 Contributing
+
 This project is not open for direct contributions.
 If you'd like to improve it, feel free to **fork** the repo and build your own version!
 

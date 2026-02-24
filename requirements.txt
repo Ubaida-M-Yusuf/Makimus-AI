@@ -1,7 +1,13 @@
---extra-index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://download.pytorch.org/whl/cu128
 Pillow==12.0.0
 numpy==2.2.6
-torch==2.5.1+cu121
-torchvision==0.20.1+cu121
+torch==2.10.0+cu128
+torchvision==0.25.0+cu128
 open_clip_torch==3.2.0
-onnxruntime-gpu==1.23.2
+rawpy==0.26.1
+opencv-python==4.13.0.92
+Send2Trash==2.1.0
+
+# Optional (legacy): ONNX GPU acceleration
+# Only useful on older NVIDIA GPUs. Also requires code changes inside Makimus-AI.py to enable.
+# onnxruntime-gpu==1.23.2
