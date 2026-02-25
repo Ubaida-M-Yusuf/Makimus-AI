@@ -1,8 +1,10 @@
 import os
 import sys
+import io
 import pickle
 import json
 import shutil
+import threading
 from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -175,6 +177,10 @@ BORDER = "#3c3c3c"
 
 RAW_EXTS = (".cr2", ".nef", ".arw", ".dng", ".orf", ".rw2", ".raf", ".pef", ".sr2")
 
+# Serializes disk reads so HDD head moves sequentially instead of thrashing.
+# One thread reads bytes into RAM at a time; all threads decode in parallel after.
+_DISK_LOCK = threading.Lock()
+
 def get_safe_path(path):
     """Prepend Windows extended path prefix to handle paths longer than 260 chars."""
     if os.name == 'nt':
@@ -190,7 +196,11 @@ def open_image(path):
     if path.lower().endswith(RAW_EXTS):
         try:
             import rawpy
-            with rawpy.imread(safe_path) as raw:
+            # Lock disk read — sequential HDD access, then decode in RAM without lock
+            with _DISK_LOCK:
+                with open(safe_path, 'rb') as f:
+                    raw_bytes = f.read()
+            with rawpy.imread(io.BytesIO(raw_bytes)) as raw:
                 rgb = raw.postprocess(use_camera_wb=True, no_auto_bright=False, output_bps=8)
             img = Image.fromarray(rgb)
         except ImportError:
@@ -201,14 +211,18 @@ def open_image(path):
             return None
     else:
         try:
-            # Open via a file handle so PIL never sees the \\?\ extended-path prefix.
-            # PIL's format-sniffing uses Python's built-in open() internally, which on some
-            # Pillow/Windows versions mishandles the \\?\ prefix and raises
-            # "cannot identify image file" even for valid JPEGs/WEBPs.
-            # Passing an already-open binary file object bypasses that entirely.
-            with open(safe_path, 'rb') as fh:
-                img = Image.open(fh)
-                img.load()   # force full decode while file handle is still open
+            # Lock disk read — sequential HDD access, then decode in RAM without lock
+            with _DISK_LOCK:
+                with open(safe_path, 'rb') as fh:
+                    file_bytes = fh.read()
+            # Use BytesIO with explicit format derived from extension so PIL
+            # doesn't have to guess — works for WEBP, JPG, PNG etc.
+            ext = os.path.splitext(path)[1].lower().lstrip('.')
+            fmt_map = {'jpg': 'JPEG', 'jpeg': 'JPEG', 'png': 'PNG',
+                       'webp': 'WEBP', 'bmp': 'BMP', 'gif': 'GIF'}
+            fmt = fmt_map.get(ext)
+            img = Image.open(io.BytesIO(file_bytes), formats=[fmt] if fmt else None)
+            img.load()   # force full decode in RAM, no file handle needed
         except MemoryError:
             safe_print(f"[IMAGE] Skipping {os.path.basename(path)}: image too large for available RAM")
             return None
@@ -1534,9 +1548,9 @@ class ImageSearchApp:
                         return (abs_path, None, None)
 
             batches = [file_list[i:i + BATCH_SIZE] for i in range(0, total, BATCH_SIZE)]
-            # 12 workers = one per CPU thread on Ryzen 5600. Each worker is capped at
-            # 1 OMP thread via torch.set_num_threads(1) so no explosion — 12 clean threads total.
-            executor = ThreadPoolExecutor(max_workers=12)
+            # 4 workers: 1 reads from disk (serialized by _DISK_LOCK), 3 decode in parallel.
+            # More workers would just queue on the lock without adding benefit.
+            executor = ThreadPoolExecutor(max_workers=4)
 
             def submit_batch(idx):
                 """Submit all images in batch idx as individual futures."""
@@ -2352,8 +2366,10 @@ class ImageSearchApp:
         if self.is_searching or self.clip_model is None:
             safe_print("[SEARCH] Already searching or model not loaded")
             return
-        has_image_data = self.image_embeddings is not None and len(self.image_paths) > 0
-        has_video_data = self.video_embeddings is not None and len(self.video_paths) > 0
+        has_image_data = (self.image_embeddings is not None and len(self.image_paths) > 0) or \
+                         bool(getattr(self, '_pending_image_batches', None))
+        has_video_data = (self.video_embeddings is not None and len(self.video_paths) > 0) or \
+                         bool(getattr(self, '_pending_video_batches', None))
         if not has_image_data and not has_video_data:
             messagebox.showwarning("No Data", "Index is empty. Please select a folder.")
             return
@@ -2362,6 +2378,11 @@ class ImageSearchApp:
         if not query:
             safe_print("[SEARCH] Empty query")
             self.update_status("Enter a search term", "orange")
+            messagebox.showinfo(
+                "Empty Search",
+                "Please type something in the search box to search.\n\n"
+                "To search by image similarity, use the Image button next to the search box."
+            )
             return
 
         safe_print(f"\n[SEARCH] Starting search for: '{query}'")
@@ -2497,7 +2518,7 @@ class ImageSearchApp:
                 safe_print(f"[SEARCH] Displaying first {len(first_batch)} of {self.total_found} results")
 
                 # Suggest lowering score if very few results
-                if self.total_found < 6 and not self.is_indexing:
+                if self.total_found < 6:
                     self.root.after(500, self._maybe_suggest_lower_score)
 
                 cw = max(self.canvas.winfo_width(), CELL_WIDTH)
@@ -2506,9 +2527,8 @@ class ImageSearchApp:
                 self.start_thumbnail_loader(first_batch, generation)
             else:
                 safe_print("[SEARCH] No results found")
-                if not self.is_indexing:
-                    self.root.after(0, lambda: self.update_status("No results found", "green"))
-                    self.root.after(100, self._maybe_suggest_lower_score)
+                self.root.after(0, lambda: self.update_status("No results found", "green"))
+                self.root.after(100, self._maybe_suggest_lower_score)
                 self.is_searching = False
                 
         except Exception as e:
@@ -2592,9 +2612,13 @@ class ImageSearchApp:
                 first_batch = all_results[:initial_n]
                 self.show_more_offset = len(first_batch)
 
+                if self.total_found < 6:
+                    self.root.after(500, self._maybe_suggest_lower_score)
+
                 self.start_thumbnail_loader(first_batch, generation)
             else:
                 self.root.after(0, lambda: self.update_status("No matches", "green"))
+                self.root.after(100, self._maybe_suggest_lower_score)
                 self.is_searching = False
         except Exception as e:
             safe_print(f"[IMAGE SEARCH ERROR] {e}")
@@ -2767,6 +2791,7 @@ class ImageSearchApp:
         saved_results = self.all_search_results
         saved_total = self.total_found
 
+        self.selected_images.clear()
         self.clear_results(keep_results=True)
 
         self.all_search_results = saved_results
@@ -2795,6 +2820,7 @@ class ImageSearchApp:
         new_offset = self.show_more_offset + len(next_batch)
 
         # Clear widgets only — keep_results=True so all_search_results is NOT wiped
+        self.selected_images.clear()
         self.clear_results(keep_results=True)
 
         # Restore state that clear_results didn't touch (thumbnail_count reset by clear_results)
@@ -2949,9 +2975,11 @@ class ImageSearchApp:
             messagebox.showinfo(
                 "Few Results Found",
                 f"Only {self.total_found} result(s) found at similarity score {current_score:.2f}.\n\n"
-                f"Try lowering the Similarity Score slider to find more matches.\n"
-                f"• Text search works well at 0.15–0.30\n"
-                f"• Image search works well at 0.60–0.85"
+                f"Things to check:\n"
+                f"• Make sure the Image and/or Video filter buttons are enabled next to the Deselect All button\n"
+                f"• Try lowering the Similarity Score slider to find more matches\n"
+                f"  — Text search works well at 0.15–0.30\n"
+                f"  — Image search works well at 0.60–0.85"
             )
 
     def _get_all_cards(self):
