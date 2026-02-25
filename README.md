@@ -29,7 +29,8 @@ Makimus-AI is completely **free and open source**. If it saves you time and you'
 ## ⚙️ Requirements
 
 - Python 3.10, 3.11, or 3.12
-- NVIDIA GPU (recommended) — CPU mode works but is much slower
+- NVIDIA GPU (recommended) — or AMD GPU with DirectML on Windows
+- CPU mode works but is much slower
 - Windows / Linux / macOS
 
 ---
@@ -47,6 +48,8 @@ cd Makimus-AI
 **2.** Double-click **`Install.bat`** — it creates a virtual environment, installs all dependencies, and launches the app automatically.
 
 Use **`Run.bat`** every time you want to start the app after that.
+
+> **Note:** `Install.bat` installs CUDA 12.8 PyTorch and is intended for NVIDIA GPU users. AMD or CPU-only users should follow the manual installation steps below.
 
 ---
 
@@ -87,17 +90,28 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**Apple Silicon (MPS) — GPU acceleration built in, no extras needed:**
+```bash
+pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.26.1 opencv-python==4.13.0.92 Send2Trash==2.1.0
+pip install torch==2.10.0 torchvision==0.25.0
+```
+
 **No NVIDIA GPU / CPU only:**
 ```bash
 pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.26.1 opencv-python==4.13.0.92 Send2Trash==2.1.0
 pip install torch==2.10.0 torchvision==0.25.0
 ```
 
-**Apple Silicon (MPS):**
+**AMD GPU — Windows (DirectML):**
 ```bash
 pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.26.1 opencv-python==4.13.0.92 Send2Trash==2.1.0
 pip install torch==2.10.0 torchvision==0.25.0
+pip install torch-directml
 ```
+
+**AMD GPU — Linux (ROCm):**
+
+ROCm requires a separate PyTorch build and is not officially supported. If you want to try it, visit [pytorch.org](https://pytorch.org/get-started/locally) and select ROCm as the compute platform. Note that only RX 6000 and RX 7000 series GPUs are well supported. If ROCm setup fails the app will fall back to CPU automatically.
 
 > **Older NVIDIA GPUs (GTX 900 series and earlier):** If installation fails or CUDA is not detected, try CUDA 12.6 instead:
 > ```bash
@@ -188,7 +202,7 @@ pip install -r requirements.txt
 - ➖ **Negative search terms** — exclude unwanted content with minus prefixes
 - 📷 **RAW photo support** — full indexing and display for ARW, CR2, NEF, DNG, ORF, RW2, RAF, PEF, SR2
 - 🎞️ **Video support** — MP4, MKV, MOV, AVI, WEBM, M4V, WMV, FLV, TS, MPG and more
-- ⚡ **GPU accelerated** — CUDA (NVIDIA), Apple MPS, DirectML (Windows AMD/Intel)
+- ⚡ **GPU accelerated** — CUDA (NVIDIA), Apple MPS, DirectML (AMD/Intel on Windows)
 - 🧠 **Auto-tuning** — detects VRAM and adjusts batch sizes automatically
 - 🔄 **Search while indexing** — no need to wait for indexing to finish
 - 💾 **Smart incremental cache** — only new or changed files are processed on refresh
@@ -210,6 +224,7 @@ pip install -r requirements.txt
 | rawpy | 0.26.1 | RAW photo support |
 | opencv-python | 4.13.0.92 | Video support |
 | Send2Trash | 2.1.0 | Delete to Recycle Bin |
+| torch-directml | latest | ⚙️ Optional — AMD/Intel GPU on Windows |
 | onnxruntime-gpu | 1.23.2 | ⚙️ Optional legacy ONNX (requires code changes) |
 
 ---

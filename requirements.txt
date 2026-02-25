@@ -8,6 +8,9 @@ rawpy==0.26.1
 opencv-python==4.13.0.92
 Send2Trash==2.1.0
 
+# Optional: AMD GPU acceleration on Windows (DirectML)
+# pip install torch-directml
+
 # Optional (legacy): ONNX GPU acceleration
 # Only useful on older NVIDIA GPUs. Also requires code changes inside Makimus-AI.py to enable.
 # onnxruntime-gpu==1.23.2
