@@ -121,6 +121,10 @@ pip install torch-directml
 
 ROCm requires a separate PyTorch build and is not officially supported. If you want to try it, visit [pytorch.org](https://pytorch.org/get-started/locally) and select ROCm as the compute platform. Note that only RX 6000 and RX 7000 series GPUs are well supported. If ROCm setup fails the app will fall back to CPU automatically.
 
+**Intel Arc GPU:**
+
+Intel Arc is not officially supported. You can try [Intel Extension for PyTorch (IPEX)](https://intel.github.io/intel-extension-for-pytorch) but it is experimental, version-sensitive, and may not work correctly. If it fails the app will fall back to CPU automatically.
+
 **Optional (legacy): ONNX acceleration**
 
 Only useful on older NVIDIA GPUs. **Requires code changes inside `Makimus-AI.py` to enable — not plug and play.**
