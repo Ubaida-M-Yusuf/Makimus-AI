@@ -89,8 +89,14 @@ source venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+
+
 > **Older NVIDIA GPUs (GTX 900 series and earlier):** If installation fails or CUDA is not detected, try CUDA 12.6 instead:
 
+> ```bash
+> pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.26.1 opencv-python==4.13.0.92 Send2Trash==2.1.0
+> pip install torch==2.9.1+cu126 torchvision==0.24.1+cu126 --index-url https://download.pytorch.org/whl/cu126
+> ```
 
 **Apple Silicon (MPS) — GPU acceleration built in, no extras needed:**
 ```bash
