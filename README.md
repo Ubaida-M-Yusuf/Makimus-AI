@@ -21,8 +21,8 @@ Makimus-AI is completely **free and open source**. If it saves you time and you'
 | Method | Address |
 |--------|---------|
 | 💳 PayPal | [paypal.me/UbaidahYusuf](https://www.paypal.me/UbaidahYusuf) |
-| ₿ Bitcoin (BTC) | `bc1ql0xt7r66lnndgks6a6j286taf38a420370tasv` |
-| 💵 USDT -- TRC-20 (Tron) | `TKV3gh5DTkpavcvwh7x4Z5gCm6yJjsKNkd` |
+| ₿ Bitcoin (BTC) | `32Ztk8P3zMavx51usno2adnDiZzLmZL42y` |
+| 💵 USDT — TRC-20 (Tron) | `TYwaZ2xNqHUYDXH83teMSNtWfYETiBAEDk` |
 
 ---
 
@@ -32,6 +32,33 @@ Makimus-AI is completely **free and open source**. If it saves you time and you'
 - NVIDIA GPU (recommended) — or AMD GPU with DirectML on Windows
 - CPU mode works but is much slower
 - Windows / Linux / macOS
+
+---
+
+## 🐍 Installing Python
+
+If you don't have Python installed, follow the steps for your operating system.
+
+### Windows
+1. Go to [python.org/downloads](https://www.python.org/downloads/) and download Python **3.11** (recommended)
+2. Run the installer — **check "Add Python to PATH"** before clicking Install
+3. Open a terminal and verify: `python --version`
+
+### macOS
+```bash
+# Using Homebrew (recommended):
+brew install python@3.11
+
+# Or download the installer from python.org/downloads
+```
+
+### Linux (Ubuntu / Debian / Kubuntu)
+```bash
+sudo apt update
+sudo apt install python3 python3-pip python3-venv python3-tk
+```
+
+> **Verify your install:** `python3 --version` — should show 3.10, 3.11, or 3.12.
 
 ---
 
@@ -61,12 +88,18 @@ git clone https://github.com/Ubaida-M-Yusuf/Makimus-AI.git
 cd Makimus-AI
 ```
 
-**2. Create a virtual environment:**
+**2. Linux only — install system dependencies:**
+```bash
+sudo apt install python3-tk python3-pip libgl1 libglib2.0-0 ffmpeg
+```
+> This step is required on Linux. `libgl1` and `libglib2.0-0` are needed by OpenCV, `ffmpeg` is needed for video support, and `python3-tk` is needed for the GUI. Skip this step on Windows and macOS.
+
+**3. Create a virtual environment:**
 ```bash
 python -m venv venv
 ```
 
-**3. Activate the virtual environment:**
+**4. Activate the virtual environment:**
 
 **Windows (Git Bash):**
 ```bash
@@ -83,16 +116,14 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-**4. Install dependencies — pick the right command for your GPU:**
+**5. Install dependencies — pick the right command for your GPU:**
 
 **NVIDIA GPU — All modern cards (RTX 20xx, 30xx, 40xx, 50xx):**
 ```bash
 pip install -r requirements.txt
 ```
 
-
 > **Older NVIDIA GPUs (GTX 900 series and earlier):** If installation fails or CUDA is not detected, try CUDA 12.6 instead:
-
 > ```bash
 > pip install Pillow==12.0.0 numpy==2.2.6 open_clip_torch==3.2.0 rawpy==0.26.1 opencv-python==4.13.0.92 Send2Trash==2.1.0
 > pip install torch==2.9.1+cu126 torchvision==0.24.1+cu126 --index-url https://download.pytorch.org/whl/cu126
@@ -120,7 +151,6 @@ pip install torch-directml
 **AMD GPU — Linux (ROCm):**
 
 ROCm requires a separate PyTorch build and is not officially supported. If you want to try it, visit [pytorch.org](https://pytorch.org/get-started/locally) and select ROCm as the compute platform. Note that only RX 6000 and RX 7000 series GPUs are well supported. If ROCm setup fails the app will fall back to CPU automatically.
-
 
 **Optional (legacy): ONNX acceleration**
 
@@ -175,7 +205,7 @@ pip install -r requirements.txt
   - Higher = fewer results, closer match
 
 ### Working with Results
-- **Single click** a thumbnail → opens the file location in Explorer / Finder
+- **Single click** a thumbnail → opens the file location in Explorer / Finder / Dolphin
 - **Double click** a thumbnail → opens the file in your default viewer / player
 - **Right-click** a thumbnail → context menu: open, show in folder, copy to folder, move to folder, delete to recycle bin, select/deselect
 - **Click and drag** on empty canvas space → rubber-band select multiple results at once
@@ -189,10 +219,12 @@ pip install -r requirements.txt
 ### File Operations
 - Select results using right-click or rubber-band drag, then use the toolbar to **Export** (copy) or **Move** them to any folder
 - **Delete to Recycle Bin** — right-click any result to safely delete it. Files go to your system Recycle Bin and can be recovered if needed
+- Selection is preserved after copy/move so you can chain operations (e.g. copy to one folder, then move to another) without reselecting
 
 ### Managing Your Index
 - **Refresh** — scans your folder for new or deleted files and updates the index incrementally without re-processing everything. **This is the correct way to update your index after adding new files.**
-- **Delete Cache** — wipes the entire index and forces a full re-index next time. You almost never need this — always use **Refresh** instead.
+- The cache is stored inside your media folder and detected automatically next time you open that folder. **Renaming or moving the folder does not break the cache** — relative paths are used internally.
+- Cache management is automatic — the app protects existing cache from accidental overwrites and only updates what has changed.
 
 ---
 
@@ -212,6 +244,7 @@ pip install -r requirements.txt
 - 🖱️ **Rubber-band multi-select** — drag to select multiple results at once
 - 📁 **Export / Move selected** — copy or move search results to any folder
 - 🗑️ **Delete to Recycle Bin** — safely remove files via right-click, recoverable from Recycle Bin
+- 🐧 **Linux support** — tested on Kubuntu with KDE/X11
 
 ---
 
@@ -247,7 +280,8 @@ pip install -r requirements.txt
 
 - The model downloads automatically on first launch (~1.7 GB) — this only happens once
 - Cache files are stored inside your media folder — keep them for instant future searches
-- After adding new files, use **Refresh** to update the index — do not use Delete Cache
+- After adding new files, use **Refresh** to update the index
+- Renaming or moving the indexed folder does not break the cache
 - CPU-only mode works but indexing will be significantly slower
 
 ---
