@@ -900,17 +900,11 @@ class ImageSearchApp:
         self.btn_folder = ttk.Button(top, text="Folder", command=self.on_select_folder, width=10)
         self.btn_folder.pack(side="left", padx=4)
         
-        self.btn_cache = ttk.Button(top, text="Load Cache", command=self.on_select_cache, width=12, style="Accent.TButton")
-        self.btn_cache.pack(side="left", padx=4)
-        
         self.btn_refresh = ttk.Button(top, text="Refresh", command=self.on_force_reindex, width=10)
         self.btn_refresh.pack(side="left", padx=4)
 
         self.btn_index_videos = ttk.Button(top, text="Index Videos", command=self.on_index_videos_click, width=13)
         self.btn_index_videos.pack(side="left", padx=4)
-
-        self.btn_clear = ttk.Button(top, text="Clear Cache", command=self.on_delete_cache, width=12, style="Danger.TButton")
-        self.btn_clear.pack(side="left", padx=4)
         
         ttk.Label(top, text=f"Using: {MODEL_NAME}", foreground=ACCENT_SECONDARY).pack(side="left", padx=(16, 4))
         
@@ -1310,7 +1304,11 @@ class ImageSearchApp:
                 data = pickle.load(f)
                 # New format: (relative_paths, embeddings)
                 self.image_paths, self.image_embeddings = data
-            
+
+            # Normalize to forward slashes — makes cache cross-platform (Windows/Linux/Mac)
+            # Old Windows caches with backslashes load correctly on Linux and vice versa
+            self.image_paths = [p.replace('\\', '/') for p in self.image_paths]
+
             if hasattr(self.image_embeddings, 'cpu'):
                 self.image_embeddings = self.image_embeddings.cpu().numpy()
             
@@ -1336,6 +1334,9 @@ class ImageSearchApp:
             with open(cache_path, "rb") as f:
                 data = pickle.load(f)
                 self.video_paths, self.video_embeddings = data
+
+            # Normalize to forward slashes — cross-platform compatibility
+            self.video_paths = [(vp.replace('\\', '/'), ts) for vp, ts in self.video_paths]
 
             if hasattr(self.video_embeddings, 'cpu'):
                 self.video_embeddings = self.video_embeddings.cpu().numpy()
@@ -1403,7 +1404,7 @@ class ImageSearchApp:
             for f in files:
                 if f.lower().endswith(IMAGE_EXTS):
                     abs_path = os.path.join(root, f)
-                    rel_path = os.path.relpath(abs_path, self.folder)
+                    rel_path = os.path.relpath(abs_path, self.folder).replace('\\', '/')
                     if self._is_excluded(rel_path):
                         continue
                     current_disk_files.add(rel_path)
@@ -1469,7 +1470,7 @@ class ImageSearchApp:
             for f in files:
                 if f.lower().endswith(IMAGE_EXTS):
                     abs_path = os.path.join(root, f)
-                    rel_path = os.path.relpath(abs_path, self.folder)
+                    rel_path = os.path.relpath(abs_path, self.folder).replace('\\', '/')
                     if not self._is_excluded(rel_path):
                         all_images.append(abs_path)
         
@@ -1598,7 +1599,7 @@ class ImageSearchApp:
                         if feats is not None and feats.size > 0:
                             nf, np_ = [], []
                             for i2, ap in enumerate(buf_paths):
-                                rp = os.path.relpath(ap, self.folder)
+                                rp = os.path.relpath(ap, self.folder).replace('\\', '/')
                                 if rp not in existing_paths_set:
                                     np_.append(rp); nf.append(feats[i2])
                                     existing_paths_set.add(rp)
@@ -1707,6 +1708,11 @@ class ImageSearchApp:
             # affect output. Must be set before VideoCapture() is constructed.
             import os as _os
             _os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
+            # cv2 pip package bundles its own Qt libs which conflict with system Qt on Linux,
+            # causing a fatal crash. Setting offscreen tells cv2 not to load any Qt display
+            # plugin — it only needs video decoding, not display.
+            if os.name != 'nt' and sys.platform != 'darwin':
+                _os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
             try:
                 import cv2 as _cv2pre
                 _cv2pre.setLogLevel(0)   # 0 = LOG_LEVEL_SILENT
@@ -1746,7 +1752,7 @@ class ImageSearchApp:
             def extract_frames(abs_video_path):
                 """Worker: read all sample frames from one video. CPU only — no GPU.
                 Returns (rel_path, [(pil_img, ts), ...])."""
-                rel_path = os.path.relpath(abs_video_path, self.folder)
+                rel_path = os.path.relpath(abs_video_path, self.folder).replace('\\', '/')
                 safe_print(f"[VINDEX] Analyzing: {os.path.basename(abs_video_path)}")
                 frames = []
                 cap = None
@@ -1949,7 +1955,7 @@ class ImageSearchApp:
             for f in files:
                 if f.lower().endswith(VIDEO_EXTS):
                     abs_path = os.path.join(root_dir, f)
-                    rel_path = os.path.relpath(abs_path, self.folder)
+                    rel_path = os.path.relpath(abs_path, self.folder).replace('\\', '/')
                     if not self._is_excluded(rel_path):
                         all_videos.append(abs_path)
 
@@ -1994,7 +2000,7 @@ class ImageSearchApp:
             for f in files:
                 if f.lower().endswith(VIDEO_EXTS):
                     abs_path = os.path.join(root_dir, f)
-                    rel_path = os.path.relpath(abs_path, self.folder)
+                    rel_path = os.path.relpath(abs_path, self.folder).replace('\\', '/')
                     if self._is_excluded(rel_path):
                         continue
                     current_disk_videos.add(rel_path)
@@ -2033,20 +2039,33 @@ class ImageSearchApp:
         if getattr(self, '_pending_image_batches', None):
             batches = self._pending_image_batches
             self._pending_image_batches = []
-            stacked = np.vstack(batches)
-            if self.image_embeddings is None:
-                self.image_embeddings = stacked
-            else:
-                self.image_embeddings = np.vstack([self.image_embeddings, stacked])
+            try:
+                stacked = np.concatenate(batches, axis=0)
+                del batches
+                if self.image_embeddings is None:
+                    self.image_embeddings = stacked
+                else:
+                    combined = np.concatenate([self.image_embeddings, stacked], axis=0)
+                    del stacked
+                    self.image_embeddings = combined
+            except MemoryError:
+                safe_print("[ERROR] Out of memory consolidating image embeddings — folder may be too large for available RAM.")
+                self._pending_image_batches = []
 
         if getattr(self, '_pending_video_batches', None):
             batches = self._pending_video_batches
             self._pending_video_batches = []
-            stacked = np.vstack(batches)
-            if self.video_embeddings is None:
-                self.video_embeddings = stacked
-            else:
-                self.video_embeddings = np.vstack([self.video_embeddings, stacked])
+            try:
+                stacked = np.concatenate(batches, axis=0)
+                del batches
+                if self.video_embeddings is None:
+                    self.video_embeddings = stacked
+                else:
+                    combined = np.concatenate([self.video_embeddings, stacked], axis=0)
+                    del stacked
+                    self.video_embeddings = combined
+            except MemoryError:
+                safe_print("[ERROR] Out of memory consolidating video embeddings.")
 
     def _save_cache(self, allow_shrink=False):
         """Save cache with RELATIVE paths — never overwrites a larger existing cache.
@@ -2058,8 +2077,12 @@ class ImageSearchApp:
                 # Exception: allow_shrink=True when caller has already pruned stale entries.
                 if not allow_shrink and os.path.exists(self.cache_file):
                     try:
+                        # Check existing cache size without loading the full embedding matrix.
+                        # Rough heuristic: file size correlates with entry count.
+                        # Only load paths (first item) using an unpickler that stops after paths.
                         with open(self.cache_file, "rb") as f:
-                            existing_paths, _ = pickle.load(f)
+                            up = pickle.Unpickler(f)
+                            existing_paths = up.load()  # loads only the paths list, not the array
                         if len(existing_paths) > len(self.image_paths):
                             safe_print(f"[CACHE] ⚠ Skipping save — existing cache has {len(existing_paths):,} images, current has only {len(self.image_paths):,}")
                             return
@@ -2068,7 +2091,9 @@ class ImageSearchApp:
 
                 temp_file = self.cache_file + ".tmp"
                 with open(temp_file, "wb") as f:
-                    pickle.dump((self.image_paths, self.image_embeddings), f)
+                    # Always save with forward slashes — works on Windows/Linux/Mac
+                    universal_paths = [p.replace('\\', '/') for p in self.image_paths]
+                    pickle.dump((universal_paths, self.image_embeddings), f, protocol=pickle.HIGHEST_PROTOCOL)
                 if os.path.exists(self.cache_file):
                     os.remove(self.cache_file)
                 os.rename(temp_file, self.cache_file)
@@ -2085,7 +2110,8 @@ class ImageSearchApp:
                 if not allow_shrink and os.path.exists(self.video_cache_file):
                     try:
                         with open(self.video_cache_file, "rb") as f:
-                            existing_paths, _ = pickle.load(f)
+                            up = pickle.Unpickler(f)
+                            existing_paths = up.load()  # loads only paths, not the array
                         if len(existing_paths) > len(self.video_paths):
                             safe_print(f"[VCACHE] ⚠ Skipping save — existing cache has {len(existing_paths):,} frames, current has only {len(self.video_paths):,}")
                             return
@@ -2094,7 +2120,9 @@ class ImageSearchApp:
 
                 temp_file = self.video_cache_file + ".tmp"
                 with open(temp_file, "wb") as f:
-                    pickle.dump((self.video_paths, self.video_embeddings), f)
+                    # Always save with forward slashes — works on Windows/Linux/Mac
+                    universal_video_paths = [(vp.replace('\\', '/'), ts) for vp, ts in self.video_paths]
+                    pickle.dump((universal_video_paths, self.video_embeddings), f, protocol=pickle.HIGHEST_PROTOCOL)
                 if os.path.exists(self.video_cache_file):
                     os.remove(self.video_cache_file)
                 os.rename(temp_file, self.video_cache_file)
@@ -2666,6 +2694,9 @@ class ImageSearchApp:
                     img.thumbnail(THUMBNAIL_SIZE)
                 elif result_type == "video":
                     try:
+                        # Prevent cv2's bundled Qt from crashing on Linux
+                        if os.name != 'nt' and sys.platform != 'darwin':
+                            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
                         import cv2
                     except ImportError:
                         if not getattr(self, '_cv2_missing_warned', False):
@@ -2871,14 +2902,17 @@ class ImageSearchApp:
 
             # VIDEO badge
             if result_type == "video":
-                tk.Label(f, text="VIDEO", bg=ORANGE, fg="#000000",
-                         font=("Segoe UI", 7, "bold"), padx=3, pady=1).pack(anchor="nw", padx=4, pady=(4, 0))
+                badge = tk.Label(f, text="VIDEO", bg=ORANGE, fg="#000000",
+                         font=("Segoe UI", 7, "bold"), padx=3, pady=1)
+                badge.pack(anchor="nw", padx=4, pady=(4, 0))
+                badge.bind("<Button-1>", lambda e, p=path, w=f: self.handle_single_click(p, w))
+                badge.bind("<Double-Button-1>", lambda e: self.handle_double_click(path))
 
             lbl = tk.Label(f, image=photo, bg=CARD_BG)
             lbl.image = photo  # keep reference alive tied to widget, prevents GC blank images
             lbl.pack(pady=4)
 
-            lbl.bind("<Button-1>", lambda e: self.handle_single_click(path))
+            lbl.bind("<Button-1>", lambda e, p=path, w=f: self.handle_single_click(p, w))
             lbl.bind("<Double-Button-1>", lambda e: self.handle_double_click(path))
             lbl.bind("<Button-3>", lambda e, p=path: self._show_card_context_menu(e, p))
             f.bind("<Button-3>", lambda e, p=path: self._show_card_context_menu(e, p))
@@ -2900,16 +2934,44 @@ class ImageSearchApp:
             else:
                 label_text = f"{score:.3f}\n{name}"
 
-            tk.Label(f, text=label_text, bg=CARD_BG, fg=FG,
-                     font=("Segoe UI", 9), wraplength=180, justify="center").pack(pady=2)
+            txt_lbl = tk.Label(f, text=label_text, bg=CARD_BG, fg=FG,
+                     font=("Segoe UI", 9), wraplength=180, justify="center")
+            txt_lbl.pack(pady=2)
+            txt_lbl.bind("<Button-1>", lambda e, p=path, w=f: self.handle_single_click(p, w))
+            txt_lbl.bind("<Double-Button-1>", lambda e: self.handle_double_click(path))
         except:
             f.destroy()
             self.thumbnail_count -= 1  # undo the increment so grid has no gaps
 
-    def handle_single_click(self, path):
+    def handle_single_click(self, path, widget=None):
+        if widget:
+            self._scroll_to_widget(widget)
         if self.click_timer:
             self.root.after_cancel(self.click_timer)
-        self.click_timer = self.root.after(250, lambda: self.open_in_explorer(path))
+        self.click_timer = self.root.after(400, lambda: self.open_in_explorer(path))
+
+    def _scroll_to_widget(self, widget):
+        """Auto-scroll canvas to ensure the clicked card is fully visible."""
+        try:
+            self.results_frame.update_idletasks()
+            w_top = widget.winfo_y()
+            w_bottom = w_top + widget.winfo_height()
+            total_height = self.results_frame.winfo_height()
+            c_height = self.canvas.winfo_height()
+            if total_height <= 0 or c_height <= 0:
+                return
+            y_view = self.canvas.yview()
+            v_top = y_view[0] * total_height
+            v_bottom = y_view[1] * total_height
+            padding = 15
+            if w_bottom > v_bottom:
+                new_fraction = (w_bottom + padding - c_height) / total_height
+                self.canvas.yview_moveto(new_fraction)
+            elif w_top < v_top:
+                new_fraction = max(0.0, (w_top - padding) / total_height)
+                self.canvas.yview_moveto(new_fraction)
+        except Exception as e:
+            safe_print(f"[SCROLL] Error: {e}")
 
     def handle_double_click(self, path):
         if self.click_timer:
@@ -2920,6 +2982,8 @@ class ImageSearchApp:
     def open_in_explorer(self, path):
         """Open file location - path is already absolute from search results"""
         self.click_timer = None
+        if isinstance(path, tuple):
+            path = path[0]
         if os.path.exists(path):
             path = os.path.normpath(path)
             if os.name == 'nt':
@@ -2929,18 +2993,39 @@ class ImageSearchApp:
             elif sys.platform == 'darwin':
                 subprocess.Popen(['open', '-R', path])
             else:
+                # Linux: try common file managers that support selecting/highlighting a file.
+                # Pass raw absolute path — do NOT URL-encode, Dolphin/Nautilus handle paths directly
+                import shutil as _shutil
                 folder = os.path.dirname(path)
-                subprocess.Popen(['xdg-open', folder])
+                _fm_select = [
+                    ('dolphin',  ['dolphin',  '--select', path]),  # KDE
+                    ('nautilus', ['nautilus', '--select', path]),  # GNOME
+                    ('nemo',     ['nemo',     path]),               # Linux Mint
+                    ('caja',     ['caja',     '--select', path]),  # MATE
+                    ('thunar',   ['thunar',   folder]),             # XFCE (no select)
+                    ('pcmanfm',  ['pcmanfm',  folder]),             # LXDE (no select)
+                ]
+                launched = False
+                for _name, _cmd in _fm_select:
+                    if _shutil.which(_name):
+                        subprocess.Popen(_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        launched = True
+                        break
+                if not launched:
+                    subprocess.Popen(['xdg-open', folder], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def open_image_viewer(self, path):
         """Open image - path is already absolute from search results"""
         if os.path.exists(path):
-            if os.name == 'nt':
-                os.startfile(path)
-            elif sys.platform == 'darwin':
-                subprocess.Popen(['open', path])
-            else:
-                subprocess.Popen(['xdg-open', path])
+            try:
+                if os.name == 'nt':
+                    os.startfile(path)
+                elif sys.platform == 'darwin':
+                    subprocess.Popen(['open', path])
+                else:
+                    subprocess.Popen(['xdg-open', path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception as e:
+                safe_print(f"[OPEN] Failed to open viewer: {e}")
 
     def clear_results(self, keep_results=False):
         """Clear search results and free RAM from thumbnails"""
@@ -2986,6 +3071,14 @@ class ImageSearchApp:
         """Return all card frames currently displayed in results_frame"""
         return [w for w in self.results_frame.winfo_children()
                 if isinstance(w, tk.Frame)]
+
+    def _clear_all_selections(self):
+        """Clear selected_images AND uncheck all card checkboxes visually."""
+        self.selected_images.clear()
+        for card in self._get_all_cards():
+            for child in card.winfo_children():
+                if isinstance(child, tk.Checkbutton) and hasattr(child, 'var'):
+                    child.var.set(False)
 
     def _select_card(self, card, select=True):
         """Programmatically select or deselect a card and update its checkbox"""
@@ -3056,13 +3149,16 @@ class ImageSearchApp:
                 _TRANS = '#000002'
                 overlay.attributes('-transparentcolor', _TRANS)
                 ovcanvas = tk.Canvas(overlay, bg=_TRANS, highlightthickness=0)
+                ovcanvas.pack(fill='both', expand=True)
+                self._rb_overlay = overlay
+                self._rb_overlay_canvas = ovcanvas
             else:
-                # macOS / Linux fallback: very high alpha so the BG is nearly invisible
-                overlay.attributes('-alpha', 0.01)
-                ovcanvas = tk.Canvas(overlay, bg='black', highlightthickness=0)
-            ovcanvas.pack(fill='both', expand=True)
-            self._rb_overlay = overlay
-            self._rb_overlay_canvas = ovcanvas
+                # Linux/macOS: the alpha overlay causes black canvas / compositor issues.
+                # Use the canvas fallback (rect drawn on main canvas) instead — less pretty
+                # but reliable on all compositors including KDE Wayland and X11.
+                overlay.destroy()
+                self._rb_overlay = None
+                self._rb_overlay_canvas = None
         except Exception:
             # If overlay creation fails for any reason, fall back to canvas drawing
             self._rb_overlay = None
@@ -3085,8 +3181,9 @@ class ImageSearchApp:
     def _rb_on_press(self, event):
         """Start tracking a potential rubber-band drag.
 
-        Only activates if the press lands inside the canvas widget area.
-        All other clicks (toolbar buttons, search box, etc.) are ignored.
+        Only activates if the press lands inside the canvas widget area
+        AND not on top of any card. Uses geometry check so it works
+        regardless of event propagation order on any platform.
         """
         # Check whether the click is within the canvas bounds
         cx = self.canvas.winfo_rootx()
@@ -3095,6 +3192,19 @@ class ImageSearchApp:
         ch = self.canvas.winfo_height()
         if not (cx <= event.x_root <= cx + cw and cy <= event.y_root <= cy + ch):
             return  # Click is outside canvas area — ignore completely
+
+        # If click landed on any card, let the card handle it — don't start rubber band
+        for card in self._get_all_cards():
+            try:
+                card_rx = card.winfo_rootx()
+                card_ry = card.winfo_rooty()
+                card_rw = card.winfo_width()
+                card_rh = card.winfo_height()
+                if (card_rx <= event.x_root <= card_rx + card_rw and
+                        card_ry <= event.y_root <= card_ry + card_rh):
+                    return  # Click is on a card — do not start rubber band
+            except Exception:
+                continue
 
         self._rb_pending = True
         self._rb_active = False
@@ -3309,7 +3419,7 @@ class ImageSearchApp:
             if len(errors) > 5:
                 lines.append(f"    … and {len(errors) - 5} more")
         messagebox.showinfo("Copy Complete", "\n".join(lines) if lines else "Nothing to copy.")
-        self.selected_images.clear()
+        # Intentionally keep selection — user may want to copy to another location or delete next
 
     def _remove_paths_from_index(self, abs_paths):
         if not self.folder:
@@ -3317,7 +3427,7 @@ class ImageSearchApp:
         rel_to_remove = set()
         for p in abs_paths:
             try:
-                rel_to_remove.add(os.path.relpath(p, self.folder))
+                rel_to_remove.add(os.path.relpath(p, self.folder).replace('\\', '/'))
             except ValueError:
                 pass  # different drive (Windows edge case)
 
@@ -3389,7 +3499,9 @@ class ImageSearchApp:
         if moved:
             self._remove_cards_from_ui(moved)
             self._remove_paths_from_index(moved)
-        self.selected_images.clear()
+            # Only deselect files that were actually moved — skipped/failed stay selected for retry
+            for p in moved:
+                self.selected_images.discard(p)
         # Build a clear summary message
         lines = []
         if moved:
@@ -3431,6 +3543,10 @@ class ImageSearchApp:
 
         deleted = []
         errors = []
+        # On Linux, send2trash may copy files to trash if on different filesystem — can be slow
+        if os.name != 'nt' and sys.platform != 'darwin':
+            self.update_status("Moving to Trash... please wait", "orange")
+            self.root.update_idletasks()
         for path in list(self.selected_images):
             # Normalize path — strip any \\?\ prefix, convert slashes, resolve to absolute
             clean_path = path.replace('\\\\?\\', '').replace('\\??\\', '')
@@ -3445,7 +3561,9 @@ class ImageSearchApp:
         if deleted:
             self._remove_cards_from_ui(deleted)
             self._remove_paths_from_index(deleted)
-        self.selected_images.clear()
+            # Only deselect files that were actually deleted — failed ones stay selected for retry
+            for p in deleted:
+                self.selected_images.discard(p)
 
         # Separate success and error messages — never mix them in one dialog
         if deleted:
