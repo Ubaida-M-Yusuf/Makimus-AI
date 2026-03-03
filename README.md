@@ -288,10 +288,9 @@ pip install -r requirements.txt
 
 **Why ViT-L-14 on LAION-2B?**
 
+
 ViT-L-14 is one of the largest and most capable open CLIP models available. It was trained on LAION-2B — a dataset of 2 billion image-text pairs scraped from the real internet, completely uncurated and unfiltered. This matters because most commercial models are trained on carefully filtered datasets that exclude large categories of content.
-
-Because LAION-2B reflects what actually exists on the internet, the model understands an extremely wide range of visual content: photography, illustrations, anime, art styles, adult content, niche genres, and everything in between. It handles abstract descriptions just as well as specific visual details, and works equally well across languages since the training data is multilingual.
-
+Because LAION-2B reflects what actually exists on the internet, the model understands an extremely wide range of visual content: photography, illustrations, anime, art styles, adult content, niche genres, and everything in between. It handles abstract descriptions just as well as specific visual details.
 This makes it significantly more versatile for diverse personal media collections compared to models trained on sanitized or domain-specific datasets — which is exactly what Makimus-AI is designed for.
 
 ---
