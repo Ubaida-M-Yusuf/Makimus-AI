@@ -1516,7 +1516,15 @@ class ImageSearchApp:
             self.is_indexing = False
             self.is_stopping = False
             safe_print("[SCAN] Index is up to date.")
-            self._safe_after(0, lambda: self.update_status("Up to date", "green"))
+
+            # Chain video refresh if pending — same as _handle_stop does when new images were found
+            if getattr(self, '_pending_video_refresh', False):
+                self._pending_video_refresh = False
+                if not self.video_cache_file:
+                    self.video_cache_file = os.path.join(self.folder, self.get_video_cache_filename())
+                self._safe_after(200, lambda: self.start_indexing(mode="video_refresh"))
+            else:
+                self._safe_after(0, lambda: self.update_status("Up to date", "green"))
             self._safe_after(0, self.update_stats)
 
     def index_all_images(self):
