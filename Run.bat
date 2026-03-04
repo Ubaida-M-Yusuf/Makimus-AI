@@ -5,18 +5,5 @@ if not exist "%~dp0venv" (
     exit
 )
 call "%~dp0venv\Scripts\activate.bat"
-py -3.12 Makimus-AI.py
-if errorlevel 1 (
-    py -3.11 Makimus-AI.py
-)
-if errorlevel 1 (
-    py -3.10 Makimus-AI.py
-)
-if errorlevel 1 (
-    python Makimus-AI.py
-)
-if errorlevel 1 (
-    echo No compatible Python found! Please install Python 3.10, 3.11, or 3.12 from python.org
-    pause
-)
+python Makimus-AI.py
 pause

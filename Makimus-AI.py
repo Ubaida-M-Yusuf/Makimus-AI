@@ -1448,6 +1448,12 @@ class ImageSearchApp:
     def refresh_index(self):
         if not self.folder or self.clip_model is None: return
         self.is_indexing = True
+
+        # If cache_file was never set (e.g. user said No to image index popup but then
+        # indexed videos, then clicked Refresh) — set it now so _save_cache has a path
+        if not self.cache_file:
+            cache_files = self.get_cache_filename()
+            self.cache_file = os.path.join(self.folder, cache_files[0])
         
         # Only recreate ONNX if it's not permanently disabled
         if self.clip_model and not getattr(self.clip_model, 'use_onnx_visual', False):
