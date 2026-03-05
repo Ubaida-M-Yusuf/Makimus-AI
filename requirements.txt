@@ -7,7 +7,7 @@ open_clip_torch==3.2.0
 rawpy==0.26.1
 opencv-python==4.13.0.92
 Send2Trash==2.1.0
-tkinterdnd2
+tkinterdnd2==0.4.3
 
 # Optional: AMD GPU acceleration on Windows (DirectML)
 # pip install torch-directml
