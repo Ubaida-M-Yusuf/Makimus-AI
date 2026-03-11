@@ -215,7 +215,7 @@ pip install -r requirements.txt
 ### Searching
 - **Text search:** Just type what you're looking for and hit Enter or click Search. You don't need exact filenames — describe the content. *"sunset over ocean"*, *"person in blue jacket"*, *"fight scene"* all work.
   - **Negative terms:** Put a minus sign before any word to exclude it — *"cat -dog"* finds cats without dogs in the image. Lower the Similarity Score to 0.10 or below when using negative terms for the best results.
-- **Image search:** Click the **Image** button and pick any image from your computer, or just **drag and drop an image directly onto the results area** — Makimus will find everything in your collection that looks visually similar. Works for both images and video frames. Note: drop the image onto the main results canvas, not the control panel at the top.
+- **Image search:** Click the **Image** button and pick any image from your computer, or just **drag and drop an image directly onto the results area** — Makimus will find everything in your collection that looks visually similar. Works for both images and video frames. Note: drop the image onto the main results canvas, not the control panel at the top. Drag and drop requires `tkinterdnd2` — install it with `pip install tkinterdnd2==0.4.3` inside your venv if it's not working.
 - The **Similarity Score** slider controls how strict the matching is. Lower it to get more results, raise it to get only close matches.
 
 ### Working with Results
