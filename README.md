@@ -32,7 +32,7 @@ If you use the free GitHub version and find it useful, donations are appreciated
 
 | Method | Address |
 |--------|---------|
-| 💳 PayPal | [paypal.me/UbaidahYusuf](https://www.paypal.me/UbaidahYusuf) |
+| 💳 PayPal | [paypal.me/makimus](https://www.paypal.me/makimus) |
 | ₿ Bitcoin (BTC) | `32Ztk8P3zMavx51usno2adnDiZzLmZL42y` |
 | 💵 USDT — TRC-20 (Tron) | `TYwaZ2xNqHUYDXH83teMSNtWfYETiBAEDk` |
 
