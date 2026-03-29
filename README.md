@@ -20,11 +20,13 @@ Makimus-AI is completely **free and open source**. The source code is available 
 
 ### 📦 Want a hassle-free experience?
 
-A **pre-packaged Windows installer** is available — everything bundled in one click: Python, CUDA, and the AI model included. No internet connection required after download, no terminal, no configuration, no technical knowledge needed. Just install and start searching.
+Two pre-packaged Windows installers are available — everything bundled in one click: Python, CUDA, and the AI model included. No internet connection required after download, no terminal, no configuration, no technical knowledge needed. Just install and start searching.
 
 <br>
 
-👉 **[Get the Windows installer on Payhip](https://payhip.com/b/ZUEPu)**
+👉 **[Get it on Fansky](https://www.fansky.co/ubaidayusuf/1)** ⭐ Recommended
+
+👉 [Also available on Payhip](https://payhip.com/b/ZUEPu)
 
 <br>
 
