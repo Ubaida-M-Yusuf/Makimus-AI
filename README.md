@@ -26,17 +26,14 @@ Two pre-packaged Windows installers are available — everything bundled in one 
 
 👉 **[Get it on Fansky](https://www.fansky.co/ubaidayusuf/1)** ⭐ Recommended
 
-👉 [Also available on Payhip](https://payhip.com/b/ZUEPu)
-
 <br>
 
 If you use the free GitHub version and find it useful, donations are appreciated:
 
 | Method | Address |
 |--------|---------|
-| 💳 PayPal | [paypal.me/makimus](https://www.paypal.me/makimus) |
-| ₿ Bitcoin (BTC) | `32Ztk8P3zMavx51usno2adnDiZzLmZL42y` |
-| 💵 USDT — TRC-20 (Tron) | `TYwaZ2xNqHUYDXH83teMSNtWfYETiBAEDk` |
+| ₿ Bitcoin (BTC) | `13SBnVGj8skzYGYE2ffBMmdQTLqEhpfKoc` |
+| 💵 USDT — TRC-20 (Tron) | `TAg1roU86C6UZchqfsKRcyp7gJtfVkpMBB` |
 
 ---
 
